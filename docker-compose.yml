@@ -1,0 +1,13 @@
+version: "3.4"
+
+services:
+  ms-flights:
+    container_name: ms-flights
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ms-flights.rule=PathPrefix(`/flight`)"
+    user: root
+    image: ms-flight:latest
+    ports:
+      - 5501:5501
+    

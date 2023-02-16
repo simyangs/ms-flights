@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.flight.repo.FlightRepository">
+	<select id="getFlight" parameterType="flightReqDto" resultType="flightResDto">
+		select  
+			a.flight_id,
+			b.origin_code,
+			b.destination_code
+		from flights a
+		left join seat_maps b
+			on a.flight_no = b.flight_no
+		where a.flight_no = #{flight_no}
+		and a.flight_date = #{flight_date} 
+	</select>
+	
+	<select id="getSeatMap" parameterType="string" resultType="string">
+		select
+			seat_map
+		from seat_maps
+		where flight_no = #{flight_no}
+	</select>
+</mapper>
