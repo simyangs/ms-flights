@@ -1,19 +1,6 @@
 version: 0.2
 
 phases:
-  install:
-    runtime-versions:
-      docker: 20
-    commands:
-      - echo Install Kubectl
-      - echo ---------------------------------
-      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
-      - chmod +x ./kubectl
-      - mv ./kubectl /usr/local/bin/kubectl
-      - mkdir ~/.kube
-      - aws sts get-caller-identity
-      - aws eks --region ap-northeast-2 update-kubeconfig --name {cluster_name}
-      - echo ---------------------------------
   pre_build:
     commands:
       - echo ENV Values
@@ -22,12 +9,11 @@ phases:
       - echo $AWS_ACCOUNT_ID
       - echo $IMAGE_REPO_NAME
       - echo $IMAGE_TAG
-      - echo $CODEBUILD_BUILD_NUMBER
       - echo ---------------------------------
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-   build:
-     commands:
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+  build:
+    commands:
       - echo Build started on `date`
       - echo Application Build
       - echo ---------------------------------
@@ -40,18 +26,15 @@ phases:
       - echo ---------------------------------
       - echo Building the Docker image...   
       - echo ---------------------------------
-#      - docker pull pengbai/docker-supermario
-#      - docker tag pengbai/docker-supermario $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG-$CODEBUILD_BUILD_NUMBER
-      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG-$CODEBUILD_BUILD_NUMBER .
-      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG-$CODEBUILD_BUILD_NUMBER $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG-$CODEBUILD_BUILD_NUMBER
+      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG-$CODEBUILD_BUILD_NUMBER $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
       - echo ---------------------------------
       - echo Pushing the Docker image...
       - echo ---------------------------------
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG-$CODEBUILD_BUILD_NUMBER
-  post_build:
-    commands:
-      - AWS_ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG-$CODEBUILD_BUILD_NUMBER
-      - DATE=`date`
-      - echo Build completed on $DATE
-      - sed -i 's#AWS_ECR_URI#'"$AWS_ECR_URI"'#' ./eks-app-deploy.yml
-      - kubectl apply -f ./eks-app-deploy.yml
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - printf '[{"name":"%s","imageUri":"%s"}]' $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG  > imagedefinitions.json
+  artifacts:
+    files: imagedefinitions.json 
