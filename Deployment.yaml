@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flights-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-flights
+  template:
+    metadata:
+      labels:
+        app: ms-flights
+    spec:
+      containers:
+        - name: ms-flights
+          image: 231003823709.dkr.ecr.ap-northeast-2.amazonaws.com/ms-flights
+          ports:
+            - containerPort: 5501
+          imagePullPolicy: Always
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: rds.staging.msur-vpc.com
+            - name: SPRING_DATASOURCE_USERNAME
+              value: microservices
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: aha-0987
